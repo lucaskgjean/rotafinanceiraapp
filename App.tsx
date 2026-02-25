@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { DailyEntry, AppConfig, DEFAULT_CONFIG } from './types';
+import { DailyEntry, AppConfig, DEFAULT_CONFIG, TimeEntry } from './types';
 import QuickLaunch from './components/QuickLaunch';
 import QuickExpense from './components/QuickExpense';
 import QuickKM from './components/QuickKM';
@@ -8,14 +8,16 @@ import Dashboard from './components/Dashboard';
 import History from './components/History';
 import Expenses from './components/Expenses';
 import Maintenance from './components/Maintenance';
+import TimeTracking from './components/TimeTracking';
 import Settings from './components/Settings';
 import EditModal from './components/EditModal';
 import { generateId } from './utils/calculations';
 
 const App: React.FC = () => {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'expenses' | 'maintenance' | 'history' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'expenses' | 'maintenance' | 'ponto' | 'history' | 'settings'>('dashboard');
   const [editingEntry, setEditingEntry] = useState<DailyEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -23,7 +25,9 @@ const App: React.FC = () => {
   // Carregamento Inicial
   useEffect(() => {
     const savedEntries = localStorage.getItem('rota_financeira_data');
+    const savedTimeEntries = localStorage.getItem('rota_financeira_time');
     const savedConfig = localStorage.getItem('rota_financeira_config');
+    
     if (savedEntries) {
       try { 
         const parsed = JSON.parse(savedEntries);
@@ -35,6 +39,14 @@ const App: React.FC = () => {
         setEntries(sanitized);
       } catch (e) { console.error("Erro ao carregar entradas", e); }
     }
+
+    if (savedTimeEntries) {
+      try {
+        const parsed = JSON.parse(savedTimeEntries);
+        setTimeEntries(Array.isArray(parsed) ? parsed : []);
+      } catch (e) { console.error("Erro ao carregar ponto", e); }
+    }
+
     if (savedConfig) {
       try { 
         const parsedConfig = JSON.parse(savedConfig);
@@ -51,9 +63,10 @@ const App: React.FC = () => {
   useEffect(() => {
     setIsSaving(true);
     localStorage.setItem('rota_financeira_data', JSON.stringify(entries));
+    localStorage.setItem('rota_financeira_time', JSON.stringify(timeEntries));
     const timer = setTimeout(() => setIsSaving(false), 800);
     return () => clearTimeout(timer);
-  }, [entries]);
+  }, [entries, timeEntries]);
 
   useEffect(() => {
     localStorage.setItem('rota_financeira_config', JSON.stringify(config));
@@ -82,19 +95,30 @@ const App: React.FC = () => {
     if (!id) return;
     
     if (window.confirm("Deseja excluir este registro permanentemente?")) {
-      setEntries(prev => {
-        const filtered = prev.filter(e => e.id !== id);
-        // Feedback visual imediato de que a lista mudou
-        if (filtered.length === prev.length) {
-          console.warn("Nenhum item encontrado com o ID:", id);
-        }
-        return filtered;
-      });
+      setEntries(prev => prev.filter(e => e.id !== id));
       showToast("Registro removido.", "error");
     }
   }, []);
 
-  const importData = (newEntries: DailyEntry[], newConfig?: AppConfig) => {
+  // Handlers de Ponto
+  const addTimeEntry = (entry: TimeEntry) => {
+    setTimeEntries(prev => [...prev, entry]);
+    showToast("Ponto batido!");
+  };
+
+  const updateTimeEntry = (updated: TimeEntry) => {
+    setTimeEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
+    showToast("Ponto finalizado!");
+  };
+
+  const deleteTimeEntry = (id: string) => {
+    if (window.confirm("Excluir este registro de ponto?")) {
+      setTimeEntries(prev => prev.filter(e => e.id !== id));
+      showToast("Ponto removido.", "error");
+    }
+  };
+
+  const importData = (newEntries: DailyEntry[], newConfig?: AppConfig, newTimeEntries?: TimeEntry[]) => {
     // Sanitização profunda na importação: garante que todos tenham IDs
     const sanitizedEntries = newEntries.map(entry => ({
       ...entry,
@@ -103,12 +127,14 @@ const App: React.FC = () => {
 
     // Limpeza preventiva
     localStorage.removeItem('rota_financeira_data');
+    localStorage.removeItem('rota_financeira_time');
     if (newConfig) localStorage.removeItem('rota_financeira_config');
 
     setEntries(sanitizedEntries);
+    if (newTimeEntries) setTimeEntries(newTimeEntries);
     if (newConfig) setConfig(newConfig);
 
-    showToast(`Restauração concluída! ${sanitizedEntries.length} registros.`);
+    showToast(`Restauração concluída!`);
     setActiveTab('history'); 
   };
 
@@ -173,8 +199,9 @@ const App: React.FC = () => {
         {activeTab === 'dashboard' && <Dashboard entries={entries} config={config} onEdit={setEditingEntry} onDelete={deleteEntry} onNavigate={setActiveTab} />}
         {activeTab === 'expenses' && <Expenses entries={entries} config={config} onEdit={setEditingEntry} />}
         {activeTab === 'maintenance' && <Maintenance entries={entries} config={config} onEdit={setEditingEntry} />}
+        {activeTab === 'ponto' && <TimeTracking timeEntries={timeEntries} onAdd={addTimeEntry} onUpdate={updateTimeEntry} onDelete={deleteTimeEntry} />}
         {activeTab === 'history' && <History entries={entries} config={config} onDelete={deleteEntry} onEdit={setEditingEntry} />}
-        {activeTab === 'settings' && <Settings config={config} entries={entries} onChange={setConfig} onImport={importData} />}
+        {activeTab === 'settings' && <Settings config={config} entries={entries} timeEntries={timeEntries} onChange={setConfig} onImport={importData} />}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-100 md:hidden pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
@@ -183,14 +210,15 @@ const App: React.FC = () => {
             { id: 'dashboard', label: 'Início', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /> },
             { id: 'expenses', label: 'Gastos', icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM12 18V6" /></> },
             { id: 'maintenance', label: 'Manut.', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /> },
+            { id: 'ponto', label: 'Ponto', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
             { id: 'history', label: 'Histórico', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
             { id: 'settings', label: 'Perfil', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2" /> }
           ].map((item) => (
             <button key={item.id} onClick={() => setActiveTab(item.id as any)} className="flex flex-col items-center flex-1 py-1 group">
-              <div className={`w-16 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeTab === item.id ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`}>
+              <div className={`w-12 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeTab === item.id ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`}>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">{item.icon}</svg>
               </div>
-              <span className={`text-[11px] mt-1 font-bold tracking-tight ${activeTab === item.id ? 'text-indigo-700' : 'text-slate-500'}`}>{item.label}</span>
+              <span className={`text-[10px] mt-1 font-bold tracking-tight ${activeTab === item.id ? 'text-indigo-700' : 'text-slate-500'}`}>{item.label}</span>
             </button>
           ))}
         </div>

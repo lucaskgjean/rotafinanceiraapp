@@ -12,6 +12,8 @@ export interface DailyEntry {
   kmDriven?: number;
   fuelPrice?: number;
   kmAtMaintenance?: number; // KM no momento da manutenção
+  paymentMethod?: 'money' | 'card' | 'pix';
+  category?: 'income' | 'fuel' | 'food' | 'maintenance';
 }
 
 export interface WeeklySummary {
@@ -32,6 +34,15 @@ export interface MaintenanceAlert {
   description: string;
   kmInterval: number;
   lastKm: number;
+}
+
+export interface TimeEntry {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime?: string;
+  breakDuration?: number; // em minutos
+  notes?: string;
 }
 
 export interface AppConfig {
