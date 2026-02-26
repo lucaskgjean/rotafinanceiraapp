@@ -12,7 +12,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onChange, onImport }) => {
-  const [showHostingGuide, setShowHostingGuide] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSliderChange = (key: keyof AppConfig, value: string) => {
@@ -31,7 +31,7 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `ROTA_PLANILHA_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `ROTA_PLANILHA_${todayStr}.csv`);
     link.click();
   };
 
@@ -112,30 +112,53 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
     onChange({ ...config, maintenanceAlerts: (config.maintenanceAlerts || []).filter(a => a.id !== id) });
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   return (
-    <div className="space-y-6 max-w-2xl mx-auto pb-10">
-      {/* CARD: HOSPEDAGEM */}
-      <div className="bg-indigo-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden border-4 border-indigo-500/30">
+    <div className="space-y-4 max-w-2xl mx-auto pb-10">
+      {/* CARD: SOBRE O APP E TUTORIAL */}
+      <div className="bg-indigo-900 p-6 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden border-4 border-indigo-500/30">
         <div className="relative z-10">
-          <h3 className="text-xl font-black mb-1">Hospedagem Grátis</h3>
-          <p className="text-sm opacity-80 mb-6 leading-relaxed">Transforme este código em um site definitivo na Vercel ou Netlify.</p>
-          {!showHostingGuide ? (
-            <button onClick={() => setShowHostingGuide(true)} className="w-full py-4 bg-white text-indigo-900 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">Ver Guia do Link Oficial</button>
+          <h3 className="text-xl font-black mb-1">Sobre o RotaFinanceira</h3>
+          <p className="text-sm opacity-80 mb-6 leading-relaxed">
+            O RotaFinanceira é sua ferramenta definitiva para gestão de ganhos e gastos em rotas. 
+            Controle seu faturamento, monitore manutenções e gerencie seu tempo de trabalho em um só lugar.
+          </p>
+          {!showTutorial ? (
+            <button 
+              onClick={() => setShowTutorial(true)} 
+              className="w-full py-4 bg-white text-indigo-900 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:bg-indigo-50 active:scale-95"
+            >
+              Ver tutorial de uso
+            </button>
           ) : (
-            <div className="bg-indigo-950/50 p-4 rounded-2xl border border-indigo-400/20 text-xs space-y-3 animate-in fade-in zoom-in-95">
-              <p>1. Salve todos os arquivos (App, index, etc) em uma pasta.</p>
-              <p>2. Crie conta na <b>Vercel.com</b>.</p>
-              <p>3. Arraste a pasta e receba seu link exclusivo.</p>
-              <button onClick={() => setShowHostingGuide(false)} className="w-full pt-2 font-black text-indigo-300">FECHAR GUIA</button>
+            <div className="bg-indigo-950/50 p-6 rounded-2xl border border-indigo-400/20 text-xs space-y-4 animate-in fade-in zoom-in-95">
+              <div className="space-y-2">
+                <p className="font-black text-indigo-300 uppercase tracking-wider">1. Lançamentos</p>
+                <p>Use o "Lançamento rápido" para ganhos e "Lançar gasto extra" para despesas manuais. Dinheiro é marcado como pago automaticamente.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-black text-indigo-300 uppercase tracking-wider">2. Controle de Status</p>
+                <p>No histórico, você pode alternar entre "Pago" e "Pendente" para registros em PIX ou Caderno sem precisar editar o registro.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-black text-indigo-300 uppercase tracking-wider">3. Manutenção</p>
+                <p>Configure alertas em "Configurações" e acompanhe o progresso na aba "Manutenção" para nunca perder uma troca de óleo ou revisão.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-black text-indigo-300 uppercase tracking-wider">4. Backup</p>
+                <p>Seus dados são salvos localmente. Use a seção "Snapshot do sistema" abaixo para criar backups manuais e garantir que nunca perca seus dados.</p>
+              </div>
+              <button onClick={() => setShowTutorial(false)} className="w-full pt-2 font-black text-indigo-300 uppercase tracking-widest hover:text-white transition-colors">Fechar tutorial</button>
             </div>
           )}
         </div>
       </div>
 
       {/* CARD: META */}
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black text-slate-800">Meta Diária</h3>
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-black text-slate-800">Meta diária</h3>
           <span className="text-2xl font-black text-indigo-600">{formatCurrency(config.dailyGoal)}</span>
         </div>
         <input 
@@ -147,9 +170,9 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
       </div>
 
       {/* CARD: ALERTAS DE MANUTENÇÃO */}
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black text-slate-800">Alertas de Manutenção</h3>
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-black text-slate-800">Alertas de manutenção</h3>
           <button onClick={addMaintenanceAlert} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors">
             + Adicionar
           </button>
@@ -187,10 +210,10 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
       </div>
 
       {/* CARD: BACKUP E RESTAURAÇÃO */}
-      <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl">
+      <div className="bg-slate-900 p-6 rounded-[2.5rem] text-white shadow-xl">
         <h3 className="text-xl font-black mb-2 flex items-center gap-2">
           <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" /></svg>
-          Snapshot do Sistema
+          Snapshot do sistema
         </h3>
         <p className="text-xs opacity-50 mb-8 uppercase font-bold tracking-widest">Sincronização e Restauração</p>
         
@@ -215,8 +238,8 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
       </div>
 
       {/* CARD: RESERVAS */}
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-        <h3 className="text-xl font-black text-slate-800 mb-6">Taxas de Reserva</h3>
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <h3 className="text-xl font-black text-slate-800 mb-4">Taxas de reserva</h3>
         <div className="space-y-6">
           {[
             { id: 'percFuel', label: 'Gasolina', color: 'red', val: config.percFuel },

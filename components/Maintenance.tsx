@@ -25,16 +25,16 @@ const Maintenance: React.FC<MaintenanceProps> = ({ entries, config, onEdit }) =>
   const alerts = config.maintenanceAlerts || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Header de Saldo */}
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
-          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Reserva para Manutenção</h2>
+          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Reserva para manutenção</h2>
           <div className="text-4xl font-black text-slate-800 tracking-tighter">{formatCurrency(balance)}</div>
-          <p className="text-xs text-slate-400 mt-2 font-bold">Total Reservado: {formatCurrency(totalReserved)}</p>
+          <p className="text-xs text-slate-400 mt-2 font-bold">Total reservado: {formatCurrency(totalReserved)}</p>
         </div>
         <div className="text-center md:text-right">
-          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">KM Atual Estimado</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">KM atual estimado</span>
           <div className="text-3xl font-black text-blue-600 tracking-tighter">{lastKmEntry.toLocaleString()} KM</div>
         </div>
       </div>
@@ -88,7 +88,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ entries, config, onEdit }) =>
 
       {/* Histórico de Manutenção */}
       <div className="space-y-4">
-        <h3 className="text-lg font-black text-slate-800 px-2">Histórico de Serviços</h3>
+        <h3 className="text-lg font-black text-slate-800 px-2">Histórico de serviços</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {maintenanceEntries.length === 0 ? (
             <div className="col-span-full py-12 text-center bg-white rounded-[2rem] border border-dashed border-slate-200">

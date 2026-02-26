@@ -3,14 +3,17 @@ import React from 'react';
 import { DailyEntry, AppConfig } from '../types';
 import { formatCurrency, getWeeklyGroupedSummaries } from '../utils/calculations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import QuickKM from './QuickKM';
+import QuickExpense from './QuickExpense';
 
 interface ExpensesProps {
   entries: DailyEntry[];
   config: AppConfig;
   onEdit: (entry: DailyEntry) => void;
+  onAdd: (entry: DailyEntry) => void;
 }
 
-const Expenses: React.FC<ExpensesProps> = ({ entries, config, onEdit }) => {
+const Expenses: React.FC<ExpensesProps> = ({ entries, config, onEdit, onAdd }) => {
   const incomeEntries = entries.filter(e => e.grossAmount > 0);
   const manualExpenseEntries = entries.filter(e => e.grossAmount === 0);
   const weeklyExpenseGroups = getWeeklyGroupedSummaries(entries);
@@ -68,9 +71,15 @@ const Expenses: React.FC<ExpensesProps> = ({ entries, config, onEdit }) => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
+      {/* Lançamentos Rápidos de Gastos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <QuickKM onAdd={onAdd} config={config} />
+        <QuickExpense onAdd={onAdd} />
+      </div>
+
       {/* Saldo das Reservas */}
-      <div className={`bg-gradient-to-br ${balances.total >= 0 ? 'from-emerald-600 to-emerald-800' : 'from-rose-600 to-rose-800'} rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden transition-all duration-500`}>
+      <div className={`bg-gradient-to-br ${balances.total >= 0 ? 'from-emerald-600 to-emerald-800' : 'from-rose-600 to-rose-800'} rounded-[2.5rem] p-6 text-white shadow-2xl relative overflow-hidden transition-all duration-500`}>
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">Saldo Total das Reservas ({totalReservedPerc.toFixed(0)}%)</h2>

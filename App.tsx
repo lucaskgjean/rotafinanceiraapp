@@ -82,13 +82,13 @@ const App: React.FC = () => {
     if (entry.fuelPrice) {
       setConfig(prev => ({ ...prev, lastFuelPrice: entry.fuelPrice }));
     }
-    showToast("Lançamento salvo!");
+    showToast("Lançamento salvo com sucesso!");
   };
   
   const updateEntry = (updated: DailyEntry) => {
     setEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
     setEditingEntry(null);
-    showToast("Alteração protegida!");
+    showToast("Registro atualizado com sucesso!");
   };
 
   const deleteEntry = useCallback((id: string) => {
@@ -187,20 +187,17 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {(activeTab === 'dashboard' || activeTab === 'history') && (
-          <QuickLaunch onAdd={addEntry} existingEntries={entries} config={config} />
-        )}
-        {activeTab === 'dashboard' && (
-          <QuickKM onAdd={addEntry} config={config} />
-        )}
-        {activeTab === 'expenses' && <QuickExpense onAdd={addEntry} />}
-
-        {activeTab === 'dashboard' && <Dashboard entries={entries} config={config} onEdit={setEditingEntry} onDelete={deleteEntry} onNavigate={setActiveTab} />}
-        {activeTab === 'expenses' && <Expenses entries={entries} config={config} onEdit={setEditingEntry} />}
+      <main className="max-w-6xl mx-auto px-4 py-4 space-y-4">
+        {activeTab === 'dashboard' && <Dashboard entries={entries} config={config} onEdit={setEditingEntry} onDelete={deleteEntry} onNavigate={setActiveTab} onAdd={addEntry} />}
+        {activeTab === 'expenses' && <Expenses entries={entries} config={config} onEdit={setEditingEntry} onAdd={addEntry} />}
         {activeTab === 'maintenance' && <Maintenance entries={entries} config={config} onEdit={setEditingEntry} />}
         {activeTab === 'ponto' && <TimeTracking timeEntries={timeEntries} onAdd={addTimeEntry} onUpdate={updateTimeEntry} onDelete={deleteTimeEntry} />}
-        {activeTab === 'history' && <History entries={entries} config={config} onDelete={deleteEntry} onEdit={setEditingEntry} />}
+        {activeTab === 'history' && (
+          <div className="space-y-6">
+            <QuickLaunch onAdd={addEntry} existingEntries={entries} config={config} />
+            <History entries={entries} config={config} onDelete={deleteEntry} onEdit={setEditingEntry} onUpdate={updateEntry} />
+          </div>
+        )}
         {activeTab === 'settings' && <Settings config={config} entries={entries} timeEntries={timeEntries} onChange={setConfig} onImport={importData} />}
       </main>
 

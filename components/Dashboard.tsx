@@ -3,6 +3,7 @@ import React from 'react';
 import { DailyEntry, AppConfig } from '../types';
 import { formatCurrency, getWeeklySummary, calculateFuelMetrics } from '../utils/calculations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import QuickLaunch from './QuickLaunch';
 
 interface DashboardProps {
   entries: DailyEntry[];
@@ -10,9 +11,10 @@ interface DashboardProps {
   onEdit: (entry: DailyEntry) => void;
   onDelete: (id: string) => void;
   onNavigate: (tab: any) => void;
+  onAdd: (entry: DailyEntry) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete, onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete, onNavigate, onAdd }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const currentMonthStr = todayStr.substring(0, 7);
 
@@ -37,20 +39,6 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
   const generalSum = getWeeklySummary(entries);
 
   const fuelMetrics = calculateFuelMetrics(entries);
-  const maintenanceEntries = entries.filter(e => e.maintenance > 0 && e.grossAmount === 0);
-  const lastKmEntry = entries.reduce((max, curr) => {
-    const km = curr.kmDriven || curr.kmAtMaintenance || 0;
-    return km > max ? km : max;
-  }, 0);
-
-  const urgentAlerts = (config.maintenanceAlerts || []).filter(alert => {
-    const maintenanceForThis = maintenanceEntries.filter(e => e.storeName.toLowerCase().includes(alert.description.toLowerCase()));
-    const lastMaintenanceKm = maintenanceForThis.length > 0 
-      ? Math.max(...maintenanceForThis.map(e => e.kmAtMaintenance || 0))
-      : alert.lastKm;
-    const kmRemaining = (lastMaintenanceKm + alert.kmInterval) - lastKmEntry;
-    return kmRemaining < 1000;
-  });
 
   const goalPercent = Math.min(100, (todaySum.totalGross / config.dailyGoal) * 100);
   const isGoalReached = todaySum.totalGross >= config.dailyGoal;
@@ -63,36 +51,11 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Alerta de Manutenção Urgente */}
-      {urgentAlerts.length > 0 && (
-        <div 
-          onClick={() => onNavigate('maintenance')}
-          className="bg-rose-50 border-2 border-rose-100 p-4 rounded-3xl flex items-center justify-between cursor-pointer hover:bg-rose-100 transition-colors animate-pulse"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-rose-500 text-white rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Atenção Necessária</p>
-              <p className="text-sm font-black text-slate-800">
-                {urgentAlerts.length === 1 
-                  ? `Manutenção de ${urgentAlerts[0].description} próxima!` 
-                  : `${urgentAlerts.length} manutenções pendentes!`
-                }
-              </p>
-            </div>
-          </div>
-          <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      )}
+    <div className="space-y-5">
+      {/* 1. Lançamento Rápido */}
+      <QuickLaunch onAdd={onAdd} existingEntries={entries} config={config} />
 
-      {/* Grade de Faturamento Principal */}
+      {/* 2. Faturamento (dia, semana, mês) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: 'Hoje', sum: todaySum, color: 'from-indigo-600 to-indigo-800' },
@@ -104,7 +67,7 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
               <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">{item.label}</span>
               <div className="text-3xl font-black mb-auto tracking-tighter">{formatCurrency(item.sum.totalGross)}</div>
               <div className="mt-6 flex justify-between items-center bg-white/10 rounded-2xl px-4 py-3 border border-white/5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Saldo Líquido</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Saldo líquido</span>
                 <span className="text-base font-black text-emerald-300">{formatCurrency(item.sum.totalNet)}</span>
               </div>
             </div>
@@ -113,7 +76,34 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
         ))}
       </div>
 
-      {/* Métricas de Combustível */}
+      {/* 3. Progresso Diário */}
+      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 items-center">
+        <div className="flex-1 w-full">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Progresso diário</h3>
+              <p className="text-2xl font-black text-slate-800">
+                {formatCurrency(todaySum.totalGross)} 
+                <span className="text-slate-300 text-lg font-bold ml-2">/ {formatCurrency(config.dailyGoal)}</span>
+              </p>
+            </div>
+            <div className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest ${isGoalReached ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
+              {isGoalReached ? 'Meta concluída!' : 'Focando na rota'}
+            </div>
+          </div>
+          <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+            <div className={`h-full transition-all duration-1000 ease-out ${isGoalReached ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${goalPercent}%` }}></div>
+          </div>
+        </div>
+        <div className="text-center md:text-right">
+           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Status</span>
+           <div className={`text-4xl font-black ${isGoalReached ? 'text-emerald-500' : 'text-indigo-500'}`}>
+             {goalPercent.toFixed(0)}%
+           </div>
+        </div>
+      </div>
+
+      {/* 4. Custos por KM */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4">
           <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 shrink-0">
@@ -129,59 +119,16 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
           </div>
           <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custo por Entrega</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custo por entrega</span>
             <span className="text-xl font-black text-slate-800">{formatCurrency(fuelMetrics.costPerDelivery)}</span>
           </div>
         </div>
       </div>
 
-      {/* Alerta de Histórico (Importante para após a restauração) */}
-      {todayEntries.length === 0 && entries.length > 0 && (
-        <div className="bg-indigo-50 border-2 border-indigo-200 p-6 rounded-[2rem] flex items-center justify-between gap-4 animate-in slide-in-from-left duration-500">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
-                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <div>
-                <p className="text-sm font-black text-indigo-900 leading-tight">Backup detectado com sucesso!</p>
-                <p className="text-xs text-indigo-600 font-bold">Você não tem ganhos registrados hoje, mas o seu histórico está disponível.</p>
-              </div>
-           </div>
-           <button onClick={() => onNavigate('history')} className="px-6 py-3 bg-white text-indigo-600 rounded-xl text-xs font-black shadow-sm uppercase tracking-widest whitespace-nowrap">Ver Histórico</button>
-        </div>
-      )}
-
-      {/* Meta Diária */}
-      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-8 items-center">
+      {/* 5. Divisão de Reservas */}
+      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center gap-6">
         <div className="flex-1 w-full">
-          <div className="flex justify-between items-end mb-4">
-            <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Progresso Diário</h3>
-              <p className="text-2xl font-black text-slate-800">
-                {formatCurrency(todaySum.totalGross)} 
-                <span className="text-slate-300 text-lg font-bold ml-2">/ {formatCurrency(config.dailyGoal)}</span>
-              </p>
-            </div>
-            <div className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest ${isGoalReached ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
-              {isGoalReached ? 'Meta Concluída!' : 'Focando na Rota'}
-            </div>
-          </div>
-          <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-            <div className={`h-full transition-all duration-1000 ease-out ${isGoalReached ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${goalPercent}%` }}></div>
-          </div>
-        </div>
-        <div className="text-center md:text-right">
-           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Status</span>
-           <div className={`text-4xl font-black ${isGoalReached ? 'text-emerald-500' : 'text-indigo-500'}`}>
-             {goalPercent.toFixed(0)}%
-           </div>
-        </div>
-      </div>
-
-      {/* Distribuição Geral */}
-      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center gap-8">
-        <div className="flex-1 w-full">
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Divisão de Reservas</h3>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Divisão de reservas</h3>
           <p className="text-xs text-slate-400 mb-6 font-bold uppercase">Baseado em todo o período acumulado</p>
           <div className="grid grid-cols-2 gap-4">
              {pieData.map(item => (

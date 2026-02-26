@@ -24,7 +24,8 @@ const EditModal: React.FC<EditModalProps> = ({ entry, config, onSave, onClose })
   const [kmDriven, setKmDriven] = useState<string>(entry.kmDriven?.toString() || '');
   const [fuelPrice, setFuelPrice] = useState<string>(entry.fuelPrice?.toString() || '');
   const [kmAtMaintenance, setKmAtMaintenance] = useState<string>(entry.kmAtMaintenance?.toString() || '');
-  const [paymentMethod, setPaymentMethod] = useState<'money' | 'card' | 'pix'>(entry.paymentMethod || 'card');
+  const [paymentMethod, setPaymentMethod] = useState<'money' | 'pix' | 'debito'>(entry.paymentMethod || 'pix');
+  const [isPaid, setIsPaid] = useState<boolean>(entry.isPaid || false);
   const [category, setCategory] = useState<'fuel' | 'food' | 'maintenance'>(
     entry.fuel > 0 ? 'fuel' : entry.food > 0 ? 'food' : 'maintenance'
   );
@@ -42,12 +43,14 @@ const EditModal: React.FC<EditModalProps> = ({ entry, config, onSave, onClose })
     if (isIncome) {
       updated = {
         ...calculateDailyEntry(numAmount, date, time, description, config, numKm, numFuelPrice, paymentMethod),
-        id: entry.id // Mantém o ID original
+        id: entry.id, // Mantém o ID original
+        isPaid: paymentMethod === 'money' ? true : isPaid
       };
     } else {
       updated = {
         ...calculateManualExpense(numAmount, category, date, time, description, numKmAtMaintenance, paymentMethod),
-        id: entry.id // Mantém o ID original
+        id: entry.id, // Mantém o ID original
+        isPaid: paymentMethod === 'money' ? true : isPaid
       };
     }
     
@@ -162,13 +165,16 @@ const EditModal: React.FC<EditModalProps> = ({ entry, config, onSave, onClose })
             <label className="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">Forma de Pagamento</label>
             <div className="grid grid-cols-3 gap-2">
                 {[
+                  { id: 'debito', label: 'Débito' },
                   { id: 'money', label: 'Dinheiro' },
-                  { id: 'card', label: 'Cartão' },
                   { id: 'pix', label: 'PIX' }
                 ].map(pay => (
                   <button
                     key={pay.id} type="button"
-                    onClick={() => setPaymentMethod(pay.id as any)}
+                    onClick={() => {
+                      setPaymentMethod(pay.id as any);
+                      if (pay.id === 'money') setIsPaid(true);
+                    }}
                     className={`py-3 rounded-xl border-2 font-black text-[10px] uppercase transition-all ${paymentMethod === pay.id ? 'bg-slate-800 border-transparent text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
                   >
                     {pay.label}
@@ -176,6 +182,25 @@ const EditModal: React.FC<EditModalProps> = ({ entry, config, onSave, onClose })
                 ))}
             </div>
           </div>
+
+          {/* Status de Recebimento */}
+          {paymentMethod !== 'money' && (
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div>
+                <span className="text-xs font-black text-slate-400 uppercase tracking-widest block">Status</span>
+                <span className={`text-sm font-bold ${isPaid ? 'text-emerald-600' : 'text-rose-500'}`}>
+                  {isPaid ? 'Recebido / Pago' : 'Pendente'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPaid(!isPaid)}
+                className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-all ${isPaid ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}
+              >
+                {isPaid ? 'Pendente' : 'Pago'}
+              </button>
+            </div>
+          )}
 
           {/* Data e Hora */}
           <div className="grid grid-cols-2 gap-4">

@@ -12,7 +12,8 @@ export interface DailyEntry {
   kmDriven?: number;
   fuelPrice?: number;
   kmAtMaintenance?: number; // KM no momento da manutenção
-  paymentMethod?: 'money' | 'card' | 'pix';
+  paymentMethod?: 'money' | 'pix' | 'debito';
+  isPaid?: boolean;
   category?: 'income' | 'fuel' | 'food' | 'maintenance';
 }
 

@@ -8,21 +8,20 @@ interface HistoryProps {
   config: AppConfig;
   onDelete: (id: string) => void;
   onEdit: (entry: DailyEntry) => void;
+  onUpdate: (entry: DailyEntry) => void;
 }
 
-const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) => {
-  const [filterDate, setFilterDate] = useState<string>('');
-  const [filterMonth, setFilterMonth] = useState<string>('');
+const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit, onUpdate }) => {
+  const todayStr = new Date().toISOString().split('T')[0];
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterPayment, setFilterPayment] = useState<string>('');
 
+  const todayEntries = entries.filter(e => e.date === todayStr);
+
   const filteredEntries = useMemo(() => {
     return entries.filter(entry => {
-      const matchDay = filterDate ? entry.date === filterDate : true;
-      const matchMonth = filterMonth ? entry.date.startsWith(filterMonth) : true;
-      
       const matchRange = (filterStartDate || filterEndDate) ? (
         (!filterStartDate || entry.date >= filterStartDate) &&
         (!filterEndDate || entry.date <= filterEndDate)
@@ -34,13 +33,13 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
       
       const matchPayment = filterPayment ? entry.paymentMethod === filterPayment : true;
       
-      return matchDay && matchMonth && matchRange && matchCategory && matchPayment;
+      return matchRange && matchCategory && matchPayment;
     }).sort((a, b) => {
       const dateA = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
       const dateB = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
       return dateB - dateA;
     });
-  }, [entries, filterDate, filterMonth]);
+  }, [entries, filterStartDate, filterEndDate, filterCategory, filterPayment]);
 
   const stats = useMemo(() => getWeeklySummary(filteredEntries), [filteredEntries]);
   const dailyBreakdown = useMemo(() => getDailyStats(filteredEntries, config), [filteredEntries, config]);
@@ -53,8 +52,6 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
   }, [dailyBreakdown]);
 
   const clearFilters = () => {
-    setFilterDate('');
-    setFilterMonth('');
     setFilterStartDate('');
     setFilterEndDate('');
     setFilterCategory('');
@@ -62,48 +59,31 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Alerta de Histórico (Importante para após a restauração) */}
+      {todayEntries.length === 0 && entries.length > 0 && (
+        <div className="bg-indigo-50 border-2 border-indigo-200 p-6 rounded-[2rem] flex items-center justify-between gap-4 animate-in slide-in-from-left duration-500">
+           <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-black text-indigo-900 leading-tight">Backup detectado com sucesso!</p>
+                <p className="text-xs text-indigo-600 font-bold">Você não tem ganhos registrados hoje, mas o seu histórico está disponível abaixo.</p>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* Filtros Inteligentes */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-end">
-          <div className="w-full">
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Dia Específico</label>
-            <input 
-              type="date" 
-              value={filterDate}
-              onChange={(e) => { 
-                setFilterDate(e.target.value); 
-                setFilterMonth(''); 
-                setFilterStartDate('');
-                setFilterEndDate('');
-              }}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm font-bold"
-            />
-          </div>
-          <div className="w-full">
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Mês Inteiro</label>
-            <input 
-              type="month" 
-              value={filterMonth}
-              onChange={(e) => { 
-                setFilterMonth(e.target.value); 
-                setFilterDate(''); 
-                setFilterStartDate('');
-                setFilterEndDate('');
-              }}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm font-bold"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 items-end">
           <div className="w-full">
             <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Início Período</label>
             <input 
               type="date" 
               value={filterStartDate}
-              onChange={(e) => { 
-                setFilterStartDate(e.target.value); 
-                setFilterDate(''); 
-                setFilterMonth(''); 
-              }}
+              onChange={(e) => setFilterStartDate(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm font-bold"
             />
           </div>
@@ -112,11 +92,7 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
             <input 
               type="date" 
               value={filterEndDate}
-              onChange={(e) => { 
-                setFilterEndDate(e.target.value); 
-                setFilterDate(''); 
-                setFilterMonth(''); 
-              }}
+              onChange={(e) => setFilterEndDate(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm font-bold"
             />
           </div>
@@ -134,27 +110,25 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
               <option value="maintenance">Manutenção</option>
             </select>
           </div>
-          <div className="w-full flex gap-2 items-end">
-            <div className="flex-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Pagamento</label>
-              <select 
-                value={filterPayment}
-                onChange={(e) => setFilterPayment(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm font-bold appearance-none"
-              >
-                <option value="">Todos</option>
-                <option value="money">Dinheiro</option>
-                <option value="card">Cartão</option>
-                <option value="pix">PIX</option>
-              </select>
-            </div>
-            <button 
-              onClick={clearFilters}
-              className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition"
+          <div className="w-full">
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Pagamento</label>
+            <select 
+              value={filterPayment}
+              onChange={(e) => setFilterPayment(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm font-bold appearance-none"
             >
-              Limpar
-            </button>
+              <option value="">Todos</option>
+              <option value="debito">Débito</option>
+              <option value="money">Dinheiro</option>
+              <option value="pix">PIX</option>
+            </select>
           </div>
+          <button 
+            onClick={clearFilters}
+            className="w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition"
+          >
+            Limpar Filtros
+          </button>
         </div>
       </div>
 
@@ -214,6 +188,11 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
                       <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
                         {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {entry.time}
                         {entry.paymentMethod && ` • ${entry.paymentMethod.toUpperCase()}`}
+                        {entry.paymentMethod !== 'money' && (
+                          <span className={`ml-2 px-1.5 py-0.5 rounded-md ${entry.isPaid ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}>
+                            {entry.isPaid ? 'PAGO' : 'PENDENTE'}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -265,6 +244,19 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit }) 
 
                 {/* Ações de Edição e Exclusão */}
                 <div className="flex gap-2 border-t border-slate-50 pt-4">
+                  {entry.paymentMethod !== 'money' && (
+                    <button 
+                      onClick={() => onUpdate({ ...entry, isPaid: !entry.isPaid })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all active:scale-95 ${entry.isPaid ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-600'}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-black uppercase tracking-wider">
+                        {entry.isPaid ? 'Pendente' : 'Pago'}
+                      </span>
+                    </button>
+                  )}
                   <button 
                     onClick={() => onEdit(entry)}
                     className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all active:scale-95"
