@@ -32,7 +32,14 @@ const AIReportAssistant: React.FC<AIReportAssistantProps> = ({ reportData }) => 
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      // Tenta buscar a chave de diferentes formas para garantir compatibilidade com Vercel/Vite
+      const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('API_KEY_MISSING');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       
       const context = `
         Você é o assistente de inteligência artificial do aplicativo RotaFinanceira.
@@ -79,7 +86,11 @@ const AIReportAssistant: React.FC<AIReportAssistantProps> = ({ reportData }) => 
       setMessages(prev => [...prev, { role: 'model', text: modelText }]);
     } catch (err: any) {
       console.error("Erro na IA:", err);
-      setError("Ocorreu um erro ao consultar a inteligência artificial. Tente novamente.");
+      if (err.message === 'API_KEY_MISSING') {
+        setError("Chave da API não encontrada. Se você estiver no Vercel, adicione a variável de ambiente GEMINI_API_KEY nas configurações do projeto.");
+      } else {
+        setError("Ocorreu um erro ao consultar a inteligência artificial. Tente novamente.");
+      }
     } finally {
       setIsLoading(false);
     }
