@@ -134,22 +134,26 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
           ) : (
             <div className="bg-indigo-950/50 p-6 rounded-2xl border border-indigo-400/20 text-xs space-y-4 animate-in fade-in zoom-in-95">
               <div className="space-y-2">
-                <p className="font-black text-indigo-300 uppercase tracking-wider">1. Lançamentos</p>
-                <p>Use o "Lançamento rápido" para ganhos e "Lançar gasto extra" para despesas manuais. Dinheiro é marcado como pago automaticamente.</p>
+                <p className="font-black text-indigo-300 uppercase tracking-wider">1. Lançamentos Inteligentes</p>
+                <p>No "Lançamento Rápido", use o <b>carrossel de lojas</b> para selecionar estabelecimentos frequentes deslizando para os lados. Digite o valor e escolha o método de pagamento (PIX, Dinheiro ou Caderno).</p>
               </div>
               <div className="space-y-2">
-                <p className="font-black text-indigo-300 uppercase tracking-wider">2. Controle de Status</p>
-                <p>No histórico, você pode alternar entre "Pago" e "Pendente" para registros em PIX ou Caderno sem precisar editar o registro.</p>
+                <p className="font-black text-indigo-300 uppercase tracking-wider">2. Gestão de Status</p>
+                <p>No histórico, identifique dívidas rapidamente pela <b>barra lateral vermelha</b> (Pendente) ou <b>verde</b> (Pago). Clique no botão de status para alternar sem precisar editar.</p>
               </div>
               <div className="space-y-2">
-                <p className="font-black text-indigo-300 uppercase tracking-wider">3. Manutenção</p>
-                <p>Configure alertas em "Configurações" e acompanhe o progresso na aba "Manutenção" para nunca perder uma troca de óleo ou revisão.</p>
+                <p className="font-black text-indigo-300 uppercase tracking-wider">3. Relatórios e IA</p>
+                <p>Na aba de Relatórios, use o <b>Filtro por Loja</b> para ver entregas específicas. No final da página, converse com nossa <b>IA Analista</b> para obter insights sobre seu lucro e desempenho.</p>
               </div>
               <div className="space-y-2">
-                <p className="font-black text-indigo-300 uppercase tracking-wider">4. Backup</p>
-                <p>Seus dados são salvos localmente. Use a seção "Snapshot do sistema" abaixo para criar backups manuais e garantir que nunca perca seus dados.</p>
+                <p className="font-black text-indigo-300 uppercase tracking-wider">4. Manutenção e Alertas</p>
+                <p>Configure seus alertas de KM aqui nas configurações. Acompanhe o progresso na aba "Manutenção" para saber exatamente quando revisar seu veículo.</p>
               </div>
-              <button onClick={() => setShowTutorial(false)} className="w-full pt-2 font-black text-indigo-300 uppercase tracking-widest hover:text-white transition-colors">Fechar tutorial</button>
+              <div className="space-y-2">
+                <p className="font-black text-indigo-300 uppercase tracking-wider">5. Backup e Segurança</p>
+                <p>Seus dados ficam no seu celular. Use o <b>"Criar Backup"</b> regularmente para salvar um arquivo com tudo (lançamentos, ponto e configurações) e garantir que nunca perca nada.</p>
+              </div>
+              <button onClick={() => setShowTutorial(false)} className="w-full pt-2 font-black text-indigo-300 uppercase tracking-widest hover:text-white transition-colors">Entendi, fechar tutorial</button>
             </div>
           )}
         </div>

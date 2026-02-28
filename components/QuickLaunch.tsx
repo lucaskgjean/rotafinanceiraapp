@@ -34,7 +34,7 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
   const [paymentMethod, setPaymentMethod] = useState<'money' | 'pix' | 'caderno'>('pix');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const recentStores = Array.from(new Set(existingEntries.filter(e => e.grossAmount > 0).map(e => e.storeName).reverse())).slice(0, 6);
+  const allStores = Array.from(new Set(existingEntries.filter(e => e.grossAmount > 0).map(e => e.storeName).reverse()));
   const suggestionAmounts = [6, 7, 8, 10, 15];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,22 +83,18 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
             </label>
             <input
               type="text"
-              list="stores-list"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
               placeholder="Onde foi?"
             />
-            <datalist id="stores-list">
-              {recentStores.map(store => <option key={store} value={store} />)}
-            </datalist>
-            <div className="flex flex-wrap gap-2">
-              {recentStores.map(store => (
+            <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide -mx-1 px-1">
+              {allStores.map(store => (
                 <button
                   key={store}
                   type="button"
                   onClick={() => setStoreName(store)}
-                  className={`text-[9px] font-black px-3 py-2 rounded-xl transition-all ${storeName === store ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                  className={`text-[9px] font-black px-4 py-2 rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${storeName === store ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                 >
                   {store}
                 </button>

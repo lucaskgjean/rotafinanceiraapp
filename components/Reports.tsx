@@ -18,8 +18,12 @@ import {
   ArrowDownRight,
   Filter,
   ChevronRight,
-  Download
+  Download,
+  Store,
+  CreditCard
 } from 'lucide-react';
+
+import AIReportAssistant from './AIReportAssistant';
 
 interface ReportsProps {
   entries: DailyEntry[];
@@ -31,6 +35,7 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
   const today = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState<string>(today);
   const [endDate, setEndDate] = useState<string>(today);
+  const [selectedStore, setSelectedStore] = useState<string>('all');
 
   const reportData = useMemo(() => {
     const filteredEntries = entries.filter(e => e.date >= startDate && e.date <= endDate);
@@ -40,6 +45,32 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
     const incomeEntries = filteredEntries.filter(e => e.grossAmount > 0);
     const expenseEntries = filteredEntries.filter(e => e.grossAmount === 0);
     const maintenanceEntries = expenseEntries.filter(e => e.maintenance > 0);
+
+    const uniqueStores = Array.from(new Set(entries.filter(e => e.grossAmount > 0).map(e => e.storeName))).sort();
+    
+    const storeDeliveries = selectedStore === 'all' 
+      ? [] 
+      : incomeEntries.filter(e => e.storeName === selectedStore);
+
+    const totalsByPayment = incomeEntries.reduce((acc, curr) => {
+      const method = curr.paymentMethod || 'pix';
+      acc[method] = (acc[method] || 0) + curr.grossAmount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const expenseTotalsByMethod = expenseEntries.reduce((acc, curr) => {
+      const method = curr.paymentMethod || 'pix';
+      const total = curr.fuel + curr.food + curr.maintenance;
+      acc[method] = (acc[method] || 0) + total;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const expenseTotalsByCategory = expenseEntries.reduce((acc, curr) => {
+      acc.fuel = (acc.fuel || 0) + curr.fuel;
+      acc.food = (acc.food || 0) + curr.food;
+      acc.maintenance = (acc.maintenance || 0) + curr.maintenance;
+      return acc;
+    }, { fuel: 0, food: 0, maintenance: 0 });
 
     const quickLaunchesCount = incomeEntries.length;
     
@@ -78,9 +109,14 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
       totalFuelSpent,
       totalFoodSpent,
       totalMaintenanceSpent,
-      filteredEntries
+      filteredEntries,
+      uniqueStores,
+      storeDeliveries,
+      totalsByPayment,
+      expenseTotalsByMethod,
+      expenseTotalsByCategory
     };
-  }, [entries, timeEntries, startDate, endDate]);
+  }, [entries, timeEntries, startDate, endDate, selectedStore]);
 
   const exportToCSV = () => {
     const headers = ['Data', 'Hora', 'Loja/Descrição', 'Bruto', 'Combustível', 'Alimentação', 'Manutenção', 'Líquido', 'KM Rodados', 'Pagamento'];
@@ -156,7 +192,7 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Início</label>
               <div className="relative">
@@ -181,9 +217,64 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
                 />
               </div>
             </div>
+            <div className="relative">
+              <label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Filtrar por Loja</label>
+              <div className="relative">
+                <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={18} />
+                <select 
+                  value={selectedStore} 
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl pl-12 pr-4 py-4 focus:ring-2 focus:ring-indigo-500 transition outline-none font-black text-slate-700 dark:text-slate-200 text-sm appearance-none"
+                >
+                  <option value="all">Todas as Lojas</option>
+                  {reportData.uniqueStores.map(store => (
+                    <option key={store} value={store}>{store}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
+
+      {/* Relatório por Loja Selecionada */}
+      {selectedStore !== 'all' && (
+        <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex justify-between items-center mb-8">
+            <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+              <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
+              Entregas: {selectedStore}
+            </h4>
+            <div className="text-right">
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase block mb-1">Total na Loja</span>
+              <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 font-mono-num">
+                {formatCurrency(reportData.storeDeliveries.reduce((acc, curr) => acc + curr.grossAmount, 0))}
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-2 scrollbar-hide">
+            {reportData.storeDeliveries.length === 0 ? (
+              <p className="text-center py-8 text-slate-400 text-xs font-bold uppercase">Nenhuma entrega no período</p>
+            ) : (
+              reportData.storeDeliveries.map(entry => (
+                <div key={entry.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100/50 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center text-indigo-500 shadow-sm">
+                      <Package size={14} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-800 dark:text-white block">{entry.time}</span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">{new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  </div>
+                  <span className="text-sm font-black text-slate-800 dark:text-white font-mono-num">{formatCurrency(entry.grossAmount)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Grid Bento de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -227,6 +318,53 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
           </div>
           <div className="absolute -right-8 -bottom-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
             <ArrowDownRight size={180} />
+          </div>
+        </motion.div>
+
+      </div>
+
+      {/* Relatório de Métodos de Pagamento e Gastos Detalhados */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Faturamento por Método */}
+        <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
+          <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-2">
+            <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+            Faturamento por Método
+          </h4>
+          <div className="space-y-4">
+            {['pix', 'money', 'caderno'].map(method => (
+              <div key={method} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100/50 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-emerald-500 shadow-sm">
+                    <CreditCard size={18} />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase">{method === 'money' ? 'Dinheiro' : method === 'pix' ? 'PIX' : 'Caderno'}</span>
+                </div>
+                <span className="text-xl font-black text-slate-800 dark:text-white font-mono-num">{formatCurrency(reportData.totalsByPayment[method] || 0)}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Gastos por Método */}
+        <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
+          <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-2">
+            <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
+            Gastos por Método
+          </h4>
+          <div className="space-y-4">
+            {['pix', 'money', 'caderno'].map(method => (
+              <div key={method} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100/50 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-rose-500 shadow-sm">
+                    <ArrowDownRight size={18} />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase">{method === 'money' ? 'Dinheiro' : method === 'pix' ? 'PIX' : 'Caderno'}</span>
+                </div>
+                <span className="text-xl font-black text-rose-600 dark:text-rose-400 font-mono-num">{formatCurrency(reportData.expenseTotalsByMethod[method] || 0)}</span>
+              </div>
+            ))}
           </div>
         </motion.div>
 
@@ -371,6 +509,9 @@ const Reports: React.FC<ReportsProps> = ({ entries, timeEntries, config }) => {
           </div>
         )}
       </motion.div>
+
+      {/* IA Analista Financeira */}
+      <AIReportAssistant reportData={reportData} />
     </motion.div>
   );
 };
