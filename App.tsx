@@ -31,6 +31,8 @@ import {
 import confetti from 'canvas-confetti';
 import { generateId } from './utils/calculations';
 
+import { storageService } from './services/storageService';
+
 const App: React.FC = () => {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
@@ -38,6 +40,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'expenses' | 'maintenance' | 'ponto' | 'history' | 'reports' | 'settings'>('dashboard');
   const [editingEntry, setEditingEntry] = useState<DailyEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
@@ -70,55 +73,73 @@ const App: React.FC = () => {
     });
   };
 
-  // Carregamento Inicial
+  // Carregamento Inicial Assíncrono (IndexedDB)
   useEffect(() => {
-    const savedEntries = localStorage.getItem('rota_financeira_data');
-    const savedTimeEntries = localStorage.getItem('rota_financeira_time');
-    const savedConfig = localStorage.getItem('rota_financeira_config');
-    
-    if (savedEntries) {
-      try { 
-        const parsed = JSON.parse(savedEntries);
-        // Garante que cada entrada tenha um ID ao carregar (sanitização)
-        const sanitized = (Array.isArray(parsed) ? parsed : []).map(entry => ({
+    const initApp = async () => {
+      try {
+        setIsLoading(true);
+        
+        // 1. Migra se necessário
+        await storageService.migrateFromLocalStorage();
+
+        // 2. Carrega dados
+        const [savedEntries, savedTimeEntries, savedConfig] = await Promise.all([
+          storageService.getEntries(),
+          storageService.getTimeEntries(),
+          storageService.getConfig()
+        ]);
+
+        // Sanitização de entradas
+        const sanitizedEntries = savedEntries.map(entry => ({
           ...entry,
           id: entry.id || generateId()
         }));
-        setEntries(sanitized);
-      } catch (e) { console.error("Erro ao carregar entradas", e); }
-    }
+        setEntries(sanitizedEntries);
+        setTimeEntries(savedTimeEntries);
 
-    if (savedTimeEntries) {
-      try {
-        const parsed = JSON.parse(savedTimeEntries);
-        setTimeEntries(Array.isArray(parsed) ? parsed : []);
-      } catch (e) { console.error("Erro ao carregar ponto", e); }
-    }
-
-    if (savedConfig) {
-      try { 
-        const parsedConfig = JSON.parse(savedConfig);
-        // Garante que os alertas de manutenção existam se não estiverem no salvo
-        if (!parsedConfig.maintenanceAlerts) {
-          parsedConfig.maintenanceAlerts = DEFAULT_CONFIG.maintenanceAlerts;
+        if (savedConfig) {
+          // Garante que os alertas de manutenção existam se não estiverem no salvo
+          if (!savedConfig.maintenanceAlerts) {
+            savedConfig.maintenanceAlerts = DEFAULT_CONFIG.maintenanceAlerts;
+          }
+          setConfig(savedConfig);
         }
-        setConfig(parsedConfig); 
-      } catch (e) { console.error("Erro ao carregar config", e); }
-    }
+      } catch (e) {
+        console.error("Erro ao inicializar banco de dados", e);
+        showToast("Erro ao carregar dados do banco local.", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initApp();
   }, []);
 
-  // Persistência com Feedback
+  // Persistência Assíncrona com Feedback
   useEffect(() => {
-    setIsSaving(true);
-    localStorage.setItem('rota_financeira_data', JSON.stringify(entries));
-    localStorage.setItem('rota_financeira_time', JSON.stringify(timeEntries));
-    const timer = setTimeout(() => setIsSaving(false), 800);
-    return () => clearTimeout(timer);
-  }, [entries, timeEntries]);
+    if (isLoading) return; // Evita salvar durante o carregamento inicial
+
+    const saveData = async () => {
+      setIsSaving(true);
+      try {
+        await Promise.all([
+          storageService.saveEntries(entries),
+          storageService.saveTimeEntries(timeEntries)
+        ]);
+      } catch (e) {
+        console.error("Erro ao salvar dados", e);
+      } finally {
+        setTimeout(() => setIsSaving(false), 800);
+      }
+    };
+
+    saveData();
+  }, [entries, timeEntries, isLoading]);
 
   useEffect(() => {
-    localStorage.setItem('rota_financeira_config', JSON.stringify(config));
-  }, [config]);
+    if (isLoading) return;
+    storageService.saveConfig(config).catch(console.error);
+  }, [config, isLoading]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -189,17 +210,15 @@ const App: React.FC = () => {
     }
   };
 
-  const importData = (newEntries: DailyEntry[], newConfig?: AppConfig, newTimeEntries?: TimeEntry[]) => {
+  const importData = async (newEntries: DailyEntry[], newConfig?: AppConfig, newTimeEntries?: TimeEntry[]) => {
     // Sanitização profunda na importação: garante que todos tenham IDs
     const sanitizedEntries = newEntries.map(entry => ({
       ...entry,
       id: entry.id || generateId()
     }));
 
-    // Limpeza preventiva
-    localStorage.removeItem('rota_financeira_data');
-    localStorage.removeItem('rota_financeira_time');
-    if (newConfig) localStorage.removeItem('rota_financeira_config');
+    // Limpeza preventiva no IndexedDB
+    await storageService.clearAll();
 
     setEntries(sanitizedEntries);
     if (newTimeEntries) setTimeEntries(newTimeEntries);
@@ -208,6 +227,26 @@ const App: React.FC = () => {
     showToast(`Restauração concluída!`);
     setActiveTab('history'); 
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6">
+        <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-none mb-6 animate-bounce">
+          <svg className="w-10 h-10 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="28" cy="78" r="10" stroke="currentColor" strokeWidth="6" />
+            <circle cx="75" cy="78" r="10" stroke="currentColor" strokeWidth="6" />
+            <path d="M28 78 C28 60 35 45 45 45 H70 L75 78" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+            <rect x="22" y="22" width="30" height="24" rx="6" fill="#10b981" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest mb-2">RotaFinanceira</h2>
+        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-widest">
+          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          Sincronizando banco de dados...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-28 bg-slate-50 dark:bg-slate-950 font-sans antialiased text-slate-900 dark:text-slate-100 selection:bg-indigo-100 dark:selection:bg-indigo-500/30">

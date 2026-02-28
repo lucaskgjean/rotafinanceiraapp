@@ -34,7 +34,13 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
   const [paymentMethod, setPaymentMethod] = useState<'money' | 'pix' | 'caderno'>('pix');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const allStores = Array.from(new Set(existingEntries.filter(e => e.grossAmount > 0).map(e => e.storeName).reverse()));
+  const allStores = Array.from(new Set(existingEntries.filter(e => e.grossAmount > 0).map(e => e.storeName).reverse())) as string[];
+  
+  // Filtra as lojas do carrossel com base no que o usuário está digitando
+  const filteredStores = storeName.trim() === '' 
+    ? allStores 
+    : allStores.filter(s => s.toLowerCase().includes(storeName.toLowerCase()));
+
   const suggestionAmounts = [6, 7, 8, 10, 15];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -42,7 +48,15 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) return;
 
-    const newEntry = calculateDailyEntry(numAmount, date, time, storeName, config, undefined, undefined, paymentMethod);
+    // Normalização: Se o nome digitado já existe (independente de maiúsculas/minúsculas), 
+    // usa o nome que já está no histórico para não duplicar no relatório.
+    let finalStoreName = storeName.trim();
+    const existingMatch = allStores.find(s => s.toLowerCase() === finalStoreName.toLowerCase());
+    if (existingMatch) {
+      finalStoreName = existingMatch;
+    }
+
+    const newEntry = calculateDailyEntry(numAmount, date, time, finalStoreName, config, undefined, undefined, paymentMethod);
     onAdd(newEntry);
     
     setAmount('6');
@@ -89,16 +103,20 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
               placeholder="Onde foi?"
             />
             <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide -mx-1 px-1">
-              {allStores.map(store => (
-                <button
-                  key={store}
-                  type="button"
-                  onClick={() => setStoreName(store)}
-                  className={`text-[9px] font-black px-4 py-2 rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${storeName === store ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-                >
-                  {store}
-                </button>
-              ))}
+              {filteredStores.length > 0 ? (
+                filteredStores.map(store => (
+                  <button
+                    key={store}
+                    type="button"
+                    onClick={() => setStoreName(store)}
+                    className={`text-[9px] font-black px-4 py-2 rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${storeName === store ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                  >
+                    {store}
+                  </button>
+                ))
+              ) : storeName.trim() !== '' && (
+                <div className="text-[9px] font-bold text-slate-400 py-2 px-1 uppercase italic">Nova loja detectada</div>
+              )}
             </div>
           </div>
 
