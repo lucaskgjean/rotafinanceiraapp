@@ -9,18 +9,66 @@ import History from './components/History';
 import Expenses from './components/Expenses';
 import Maintenance from './components/Maintenance';
 import TimeTracking from './components/TimeTracking';
+import Reports from './components/Reports';
 import Settings from './components/Settings';
 import EditModal from './components/EditModal';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Home, 
+  ArrowUpRight, 
+  Wrench, 
+  Clock, 
+  BarChart3, 
+  History as HistoryIcon, 
+  User,
+  ShieldCheck,
+  Cloud,
+  Settings as SettingsIcon,
+  ChevronRight,
+  Moon,
+  Sun
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { generateId } from './utils/calculations';
 
 const App: React.FC = () => {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'expenses' | 'maintenance' | 'ponto' | 'history' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'expenses' | 'maintenance' | 'ponto' | 'history' | 'reports' | 'settings'>('dashboard');
   const [editingEntry, setEditingEntry] = useState<DailyEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  // Scroll to top on tab change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
+
+  // Dark Mode detection and application
+  useEffect(() => {
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (isDark || (localStorage.getItem('darkMode') === null && prefersDark)) {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => {
+      const newVal = !prev;
+      if (newVal) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      localStorage.setItem('darkMode', newVal.toString());
+      return newVal;
+    });
+  };
 
   // Carregamento Inicial
   useEffect(() => {
@@ -78,11 +126,34 @@ const App: React.FC = () => {
   };
 
   const addEntry = (entry: DailyEntry) => {
-    setEntries(prev => [...prev, entry]);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayGrossBefore = entries
+      .filter(e => e.date === todayStr)
+      .reduce((acc, curr) => acc + curr.grossAmount, 0);
+    
+    const newEntries = [...entries, entry];
+    setEntries(newEntries);
+
+    const todayGrossAfter = todayGrossBefore + entry.grossAmount;
+
+    if (todayGrossBefore < config.dailyGoal && todayGrossAfter >= config.dailyGoal) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#10b981', '#f59e0b']
+      });
+      showToast("Meta diária batida! Parabéns! 🎉");
+    } else {
+      showToast("Lançamento salvo com sucesso!");
+    }
+
     if (entry.fuelPrice) {
       setConfig(prev => ({ ...prev, lastFuelPrice: entry.fuelPrice }));
     }
-    showToast("Lançamento salvo com sucesso!");
+    if (entry.storeName === 'Fechamento de KM' && entry.kmAtMaintenance) {
+      setConfig(prev => ({ ...prev, lastTotalKm: entry.kmAtMaintenance }));
+    }
   };
   
   const updateEntry = (updated: DailyEntry) => {
@@ -139,17 +210,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-28 bg-slate-50 font-sans antialiased text-slate-900 selection:bg-indigo-100">
-      {toast && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl text-white font-black text-sm transition-all animate-in slide-in-from-top-4 ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-600'}`}>
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-            </svg>
-            {toast.message}
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen pb-28 bg-slate-50 dark:bg-slate-950 font-sans antialiased text-slate-900 dark:text-slate-100 selection:bg-indigo-100 dark:selection:bg-indigo-500/30">
+      <AnimatePresence>
+        {toast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            className={`fixed top-6 left-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl text-white font-black text-sm ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-600'}`}
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={18} />
+              {toast.message}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {editingEntry && (
         <EditModal 
@@ -160,7 +236,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-200">
@@ -172,50 +248,76 @@ const App: React.FC = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-black text-slate-900 leading-tight">Rota<span className="text-indigo-600">Financeira</span></h1>
+              <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">Rota<span className="text-indigo-600">Financeira</span></h1>
               <div className="flex items-center gap-1.5">
                 <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${isSaving ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></div>
-                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                  {isSaving ? 'Salvando...' : 'Nuvem Local Ativa'}
+                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-1">
+                  {isSaving ? 'Salvando...' : <><Cloud size={8} /> Nuvem Local Ativa</>}
                 </span>
               </div>
             </div>
           </div>
-          <button onClick={() => setActiveTab('settings')} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-indigo-600 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button onClick={() => setActiveTab('settings')} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors">
+              <SettingsIcon size={20} />
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-4 space-y-4">
-        {activeTab === 'dashboard' && <Dashboard entries={entries} config={config} onEdit={setEditingEntry} onDelete={deleteEntry} onNavigate={setActiveTab} onAdd={addEntry} />}
-        {activeTab === 'expenses' && <Expenses entries={entries} config={config} onEdit={setEditingEntry} onAdd={addEntry} />}
-        {activeTab === 'maintenance' && <Maintenance entries={entries} config={config} onEdit={setEditingEntry} />}
-        {activeTab === 'ponto' && <TimeTracking timeEntries={timeEntries} onAdd={addTimeEntry} onUpdate={updateTimeEntry} onDelete={deleteTimeEntry} />}
-        {activeTab === 'history' && (
-          <div className="space-y-6">
-            <QuickLaunch onAdd={addEntry} existingEntries={entries} config={config} />
-            <History entries={entries} config={config} onDelete={deleteEntry} onEdit={setEditingEntry} onUpdate={updateEntry} />
-          </div>
-        )}
-        {activeTab === 'settings' && <Settings config={config} entries={entries} timeEntries={timeEntries} onChange={setConfig} onImport={importData} />}
+      <main className="max-w-6xl mx-auto px-4 py-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'dashboard' && <Dashboard entries={entries} config={config} onEdit={setEditingEntry} onDelete={deleteEntry} onNavigate={setActiveTab} onAdd={addEntry} />}
+            {activeTab === 'expenses' && <Expenses entries={entries} config={config} onEdit={setEditingEntry} onAdd={addEntry} />}
+            {activeTab === 'maintenance' && <Maintenance entries={entries} config={config} onEdit={setEditingEntry} onAdd={addEntry} />}
+            {activeTab === 'ponto' && <TimeTracking timeEntries={timeEntries} onAdd={addTimeEntry} onUpdate={updateTimeEntry} onDelete={deleteTimeEntry} />}
+            {activeTab === 'reports' && <Reports entries={entries} timeEntries={timeEntries} config={config} />}
+            {activeTab === 'history' && (
+              <div className="space-y-6">
+                <QuickLaunch onAdd={addEntry} existingEntries={entries} config={config} />
+                <History entries={entries} config={config} onDelete={deleteEntry} onEdit={setEditingEntry} onUpdate={updateEntry} />
+              </div>
+            )}
+            {activeTab === 'settings' && <Settings config={config} entries={entries} timeEntries={timeEntries} onChange={setConfig} onImport={importData} />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-100 md:hidden pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+      <nav className="fixed bottom-0 left-0 right-0 glass-nav md:hidden pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] dark:shadow-none">
         <div className="flex justify-around items-center h-20 px-2">
           {[
-            { id: 'dashboard', label: 'Início', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /> },
-            { id: 'expenses', label: 'Gastos', icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM12 18V6" /></> },
-            { id: 'maintenance', label: 'Manut.', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /> },
-            { id: 'ponto', label: 'Ponto', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
-            { id: 'history', label: 'Histórico', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
-            { id: 'settings', label: 'Perfil', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2" /> }
+            { id: 'dashboard', label: 'Início', icon: <Home size={22} /> },
+            { id: 'expenses', label: 'Gastos', icon: <ArrowUpRight size={22} /> },
+            { id: 'maintenance', label: 'Manut.', icon: <Wrench size={22} /> },
+            { id: 'ponto', label: 'Ponto', icon: <Clock size={22} /> },
+            { id: 'reports', label: 'Relat.', icon: <BarChart3 size={22} /> },
+            { id: 'history', label: 'Histórico', icon: <HistoryIcon size={22} /> },
+            { id: 'settings', label: 'Perfil', icon: <User size={22} /> }
           ].map((item) => (
-            <button key={item.id} onClick={() => setActiveTab(item.id as any)} className="flex flex-col items-center flex-1 py-1 group">
-              <div className={`w-12 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeTab === item.id ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">{item.icon}</svg>
+            <button key={item.id} onClick={() => setActiveTab(item.id as any)} className="flex flex-col items-center flex-1 py-1 group relative">
+              <div className={`w-12 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${activeTab === item.id ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}>
+                {item.icon}
               </div>
-              <span className={`text-[10px] mt-1 font-bold tracking-tight ${activeTab === item.id ? 'text-indigo-700' : 'text-slate-500'}`}>{item.label}</span>
+              <span className={`text-[9px] mt-1 font-black uppercase tracking-tighter ${activeTab === item.id ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}>{item.label}</span>
+              {activeTab === item.id && (
+                <motion.div 
+                  layoutId="nav-indicator"
+                  className="absolute -top-1 w-1 h-1 bg-indigo-600 dark:bg-indigo-400 rounded-full"
+                />
+              )}
             </button>
           ))}
         </div>

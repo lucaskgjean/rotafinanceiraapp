@@ -11,8 +11,9 @@ export interface DailyEntry {
   netAmount: number;   
   kmDriven?: number;
   fuelPrice?: number;
+  liters?: number;
   kmAtMaintenance?: number; // KM no momento da manutenção
-  paymentMethod?: 'money' | 'pix' | 'debito';
+  paymentMethod?: 'money' | 'pix' | 'debito' | 'caderno';
   isPaid?: boolean;
   category?: 'income' | 'fuel' | 'food' | 'maintenance';
 }
@@ -28,6 +29,7 @@ export interface WeeklySummary {
   totalSpentMaintenance: number;
   totalFees: number;
   totalKm?: number;
+  totalLiters?: number;
 }
 
 export interface MaintenanceAlert {
@@ -52,6 +54,7 @@ export interface AppConfig {
   percMaintenance: number;
   dailyGoal: number; 
   lastFuelPrice?: number;
+  lastTotalKm?: number;
   maintenanceAlerts?: MaintenanceAlert[];
 }
 
@@ -61,6 +64,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   percMaintenance: 0.08, // 8%
   dailyGoal: 250,       // Meta padrão de R$ 250
   lastFuelPrice: 5.50,   // Valor base sugerido
+  lastTotalKm: 0,
   maintenanceAlerts: [
     { id: '1', description: 'Troca de Óleo', kmInterval: 10000, lastKm: 0 },
     { id: '2', description: 'Pneus', kmInterval: 40000, lastKm: 0 },

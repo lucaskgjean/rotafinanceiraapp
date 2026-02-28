@@ -2,6 +2,18 @@
 import React, { useState } from 'react';
 import { calculateDailyEntry } from '../utils/calculations';
 import { DailyEntry, AppConfig } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Plus, 
+  Store, 
+  DollarSign, 
+  CreditCard, 
+  Calendar, 
+  Clock, 
+  ChevronDown, 
+  ChevronUp,
+  Zap
+} from 'lucide-react';
 
 interface QuickLaunchProps {
   onAdd: (entry: DailyEntry) => void;
@@ -19,7 +31,7 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
   const [storeName, setStoreName] = useState<string>('');
   const [time, setTime] = useState<string>(getCurrentTime());
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState<'money' | 'pix' | 'debito'>('pix');
+  const [paymentMethod, setPaymentMethod] = useState<'money' | 'pix' | 'caderno'>('pix');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const recentStores = Array.from(new Set(existingEntries.filter(e => e.grossAmount > 0).map(e => e.storeName).reverse())).slice(0, 6);
@@ -40,63 +52,84 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
   };
 
   return (
-    <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800"
+    >
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-widest">
+          <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100 dark:shadow-none">
+            <Zap size={20} fill="currentColor" />
           </div>
-          Lançamento rápido
+          Lançamento Rápido
         </h3>
         <button 
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
+          className="flex items-center gap-1 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
         >
-          {showAdvanced ? 'Ocultar detalhes' : 'Mais opções'}
+          {showAdvanced ? <><ChevronUp size={14} /> Menos</> : <><ChevronDown size={14} /> Mais</>}
         </button>
       </div>
       
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex-1">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Loja / Estabelecimento</label>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Estabelecimento */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+              <Store size={12} className="text-indigo-500 dark:text-indigo-400" /> Loja
+            </label>
             <input
               type="text"
               list="stores-list"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700"
-              placeholder="Ex: App, Posto X..."
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
+              placeholder="Onde foi?"
             />
             <datalist id="stores-list">
               {recentStores.map(store => <option key={store} value={store} />)}
             </datalist>
+            <div className="flex flex-wrap gap-2">
+              {recentStores.map(store => (
+                <button
+                  key={store}
+                  type="button"
+                  onClick={() => setStoreName(store)}
+                  className={`text-[9px] font-black px-3 py-2 rounded-xl transition-all ${storeName === store ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                >
+                  {store}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex-1">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor bruto (R$)</label>
+          {/* Valor */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+              <DollarSign size={12} className="text-indigo-500 dark:text-indigo-400" /> Valor Bruto
+            </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</span>
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 font-black text-lg">R$</span>
               <input
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-black text-slate-700 text-lg"
-                placeholder="0,00"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl pl-12 pr-5 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-black text-slate-800 dark:text-white text-xl font-mono-num"
+                placeholder="0.00"
                 required
               />
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-3">
+            <div className="flex flex-wrap gap-2">
               {suggestionAmounts.map(val => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => setAmount(val.toString())}
-                  className={`text-[10px] font-black px-3 py-1.5 rounded-full transition-all ${amount === val.toString() ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-100 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600'}`}
+                  className={`text-[10px] font-black w-10 h-10 rounded-xl transition-all flex items-center justify-center ${amount === val.toString() ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                 >
                   {val}
                 </button>
@@ -104,19 +137,22 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
             </div>
           </div>
 
-          <div className="flex-1">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Forma de pagamento</label>
+          {/* Pagamento */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+              <CreditCard size={12} className="text-indigo-500 dark:text-indigo-400" /> Pagamento
+            </label>
             <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'debito', label: 'Débito' },
-                  { id: 'money', label: 'Dinheiro' },
-                  { id: 'pix', label: 'PIX' }
+                  { id: 'pix', label: 'PIX' },
+                  { id: 'money', label: 'Din.' },
+                  { id: 'caderno', label: 'Cad.' }
                 ].map(method => (
                   <button 
                     key={method.id}
                     type="button" 
                     onClick={() => setPaymentMethod(method.id as any)}
-                    className={`py-3 text-[10px] font-black uppercase tracking-widest rounded-xl border-2 transition-all ${paymentMethod === method.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-indigo-200'}`}
+                    className={`py-4 text-[10px] font-black uppercase tracking-widest rounded-2xl border-2 transition-all ${paymentMethod === method.id ? 'bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-slate-800 border-slate-50 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:border-slate-200 dark:hover:border-slate-700'}`}
                   >
                     {method.label}
                   </button>
@@ -125,25 +161,43 @@ const QuickLaunch: React.FC<QuickLaunchProps> = ({ onAdd, existingEntries, confi
           </div>
         </div>
 
-        {showAdvanced && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data do lançamento</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700" required />
-            </div>
+        <AnimatePresence>
+          {showAdvanced && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50 dark:border-slate-800">
+                <div className="space-y-2">
+                  <label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Data</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={16} />
+                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700 dark:text-slate-200 text-sm" required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Hora</label>
+                  <div className="relative">
+                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={16} />
+                    <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700 dark:text-slate-200 text-sm" required />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            <div className="flex-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Horário</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold text-slate-700" required />
-            </div>
-          </div>
-        )}
-
-        <button type="submit" className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-indigo-100 uppercase text-xs tracking-[0.2em]">
-          Confirmar lançamento
-        </button>
+        <motion.button 
+          whileTap={{ scale: 0.98 }}
+          type="submit" 
+          className="w-full bg-indigo-600 dark:bg-indigo-500 text-white font-black py-5 rounded-[2rem] hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all shadow-xl shadow-indigo-100 dark:shadow-none uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-3"
+        >
+          <Plus size={18} strokeWidth={3} /> Salvar Lançamento
+        </motion.button>
       </form>
-    </div>
+    </motion.div>
   );
 };
 

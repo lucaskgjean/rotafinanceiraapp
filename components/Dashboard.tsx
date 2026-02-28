@@ -3,6 +3,20 @@ import React from 'react';
 import { DailyEntry, AppConfig } from '../types';
 import { formatCurrency, getWeeklySummary, calculateFuelMetrics } from '../utils/calculations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { motion } from 'framer-motion';
+import { 
+  TrendingUp, 
+  Calendar, 
+  Target, 
+  Fuel, 
+  Utensils, 
+  Wrench, 
+  Wallet, 
+  Navigation,
+  Package,
+  Clock,
+  ChevronRight
+} from 'lucide-react';
 import QuickLaunch from './QuickLaunch';
 
 interface DashboardProps {
@@ -33,9 +47,9 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
     return entryDate >= startOfWeek;
   });
 
-  const todaySum = getWeeklySummary(todayEntries);
-  const weekSum = getWeeklySummary(weekEntries);
-  const monthSum = getWeeklySummary(monthEntries);
+  const todaySum = { ...getWeeklySummary(todayEntries), count: todayEntries.filter(e => e.grossAmount > 0).length };
+  const weekSum = { ...getWeeklySummary(weekEntries), count: weekEntries.filter(e => e.grossAmount > 0).length };
+  const monthSum = { ...getWeeklySummary(monthEntries), count: monthEntries.filter(e => e.grossAmount > 0).length };
   const generalSum = getWeeklySummary(entries);
 
   const fuelMetrics = calculateFuelMetrics(entries);
@@ -44,120 +58,235 @@ const Dashboard: React.FC<DashboardProps> = ({ entries, config, onEdit, onDelete
   const isGoalReached = todaySum.totalGross >= config.dailyGoal;
 
   const pieData = [
-    { name: `Combustível`, value: generalSum.totalFuel, color: '#ef4444' },
-    { name: `Alimentação`, value: generalSum.totalFood, color: '#f59e0b' },
-    { name: `Manutenção`, value: generalSum.totalMaintenance, color: '#3b82f6' },
-    { name: `Líquido`, value: generalSum.totalNet, color: '#10b981' },
+    { name: `Combustível`, value: generalSum.totalFuel, color: '#f43f5e' }, // Rose 500
+    { name: `Alimentação`, value: generalSum.totalFood, color: '#f59e0b' }, // Amber 500
+    { name: `Manutenção`, value: generalSum.totalMaintenance, color: '#3b82f6' }, // Blue 500
+    { name: `Líquido`, value: generalSum.totalNet, color: '#10b981' }, // Emerald 500
   ];
 
-  return (
-    <div className="space-y-5">
-      {/* 1. Lançamento Rápido */}
-      <QuickLaunch onAdd={onAdd} existingEntries={entries} config={config} />
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
 
-      {/* 2. Faturamento (dia, semana, mês) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { label: 'Hoje', sum: todaySum, color: 'from-indigo-600 to-indigo-800' },
-          { label: 'Semana', sum: weekSum, color: 'from-emerald-600 to-teal-800' },
-          { label: 'Mês', sum: monthSum, color: 'from-violet-600 to-purple-800' }
-        ].map((item, idx) => (
-          <div key={idx} className={`bg-gradient-to-br ${item.color} rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300`}>
-            <div className="relative z-10 flex flex-col h-full">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">{item.label}</span>
-              <div className="text-3xl font-black mb-auto tracking-tighter">{formatCurrency(item.sum.totalGross)}</div>
-              <div className="mt-6 flex justify-between items-center bg-white/10 rounded-2xl px-4 py-3 border border-white/5">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Saldo líquido</span>
-                <span className="text-base font-black text-emerald-300">{formatCurrency(item.sum.totalNet)}</span>
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  return (
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6 pb-20"
+    >
+      {/* 1. Lançamento Rápido */}
+      <motion.div variants={itemVariants}>
+        <QuickLaunch onAdd={onAdd} existingEntries={entries} config={config} />
+      </motion.div>
+
+      {/* 2. Bento Grid Section */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        
+        {/* Card de Progresso (Destaque - 2 colunas) */}
+        <motion.div 
+          variants={itemVariants}
+          className="md:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden group"
+        >
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <Target size={18} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Meta Diária</h3>
+              </div>
+              <div className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${isGoalReached ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'}`}>
+                {isGoalReached ? 'Meta Batida!' : 'Em progresso'}
               </div>
             </div>
-            <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
+            
+            <div className="mb-6">
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-slate-800 dark:text-white font-mono-num tracking-tighter">
+                  {formatCurrency(todaySum.totalGross).replace('R$', '')}
+                </span>
+                <span className="text-slate-300 dark:text-slate-600 text-lg font-bold">/ {formatCurrency(config.dailyGoal)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${goalPercent}%` }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  className={`h-full ${isGoalReached ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase">
+                <span>{goalPercent.toFixed(0)}% concluído</span>
+                <span>Faltam {formatCurrency(Math.max(0, config.dailyGoal - todaySum.totalGross))}</span>
+              </div>
+            </div>
           </div>
+          <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+            <Target size={180} />
+          </div>
+        </motion.div>
+
+        {/* Card Hoje (1 coluna) */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-indigo-600 dark:bg-indigo-700 p-6 rounded-[2.5rem] text-white shadow-lg shadow-indigo-200 dark:shadow-none flex flex-col justify-between group hover:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors"
+        >
+          <div className="flex justify-between items-start">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+              <Calendar size={20} />
+            </div>
+            <span className="text-[10px] font-black bg-white/20 px-2 py-1 rounded-lg uppercase tracking-wider">
+              {todaySum.count} Entregas
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-70 block mb-1">Hoje</span>
+            <div className="text-2xl font-black font-mono-num tracking-tighter">{formatCurrency(todaySum.totalGross)}</div>
+          </div>
+        </motion.div>
+
+        {/* Card Semana (1 coluna) */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-slate-900 dark:bg-slate-800 p-6 rounded-[2.5rem] text-white shadow-lg shadow-slate-200 dark:shadow-none flex flex-col justify-between group hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+        >
+          <div className="flex justify-between items-start">
+            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+              <TrendingUp size={20} />
+            </div>
+            <span className="text-[10px] font-black bg-white/10 px-2 py-1 rounded-lg uppercase tracking-wider">
+              {weekSum.count} Entregas
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-50 block mb-1">Semana</span>
+            <div className="text-2xl font-black font-mono-num tracking-tighter">{formatCurrency(weekSum.totalGross)}</div>
+          </div>
+        </motion.div>
+
+      </div>
+
+      {/* 3. Métricas Rápidas (Grid 4 colunas) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Custo/KM', value: formatCurrency(fuelMetrics.costPerKm), icon: <Navigation size={16} />, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10' },
+          { label: 'Custo/Entrega', value: formatCurrency(fuelMetrics.costPerDelivery), icon: <Package size={16} />, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+          { label: 'Média KM/L', value: `${fuelMetrics.kmPerLiter.toFixed(1)} km/l`, icon: <Fuel size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+          { label: 'Preço Médio/L', value: formatCurrency(fuelMetrics.avgPricePerLiter), icon: <Wallet size={16} />, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-500/10' },
+        ].map((metric, i) => (
+          <motion.div 
+            key={i}
+            variants={itemVariants}
+            className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3"
+          >
+            <div className={`w-10 h-10 ${metric.bg} ${metric.color} rounded-xl flex items-center justify-center shrink-0`}>
+              {metric.icon}
+            </div>
+            <div>
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tight block">{metric.label}</span>
+              <span className="text-sm font-black text-slate-800 dark:text-white font-mono-num">{metric.value}</span>
+            </div>
+          </motion.div>
         ))}
       </div>
 
-      {/* 3. Progresso Diário */}
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 items-center">
-        <div className="flex-1 w-full">
-          <div className="flex justify-between items-end mb-4">
-            <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Progresso diário</h3>
-              <p className="text-2xl font-black text-slate-800">
-                {formatCurrency(todaySum.totalGross)} 
-                <span className="text-slate-300 text-lg font-bold ml-2">/ {formatCurrency(config.dailyGoal)}</span>
-              </p>
+      {/* 4. Divisão de Reservas & Saldo Líquido */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Card de Reservas (2 colunas em LG) */}
+        <motion.div 
+          variants={itemVariants}
+          className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center gap-8"
+        >
+          <div className="flex-1 w-full">
+            <div className="mb-6">
+              <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest mb-1">Divisão de Reservas</h3>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-tight">Acumulado de todo o período</p>
             </div>
-            <div className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest ${isGoalReached ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
-              {isGoalReached ? 'Meta concluída!' : 'Focando na rota'}
-            </div>
-          </div>
-          <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-            <div className={`h-full transition-all duration-1000 ease-out ${isGoalReached ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${goalPercent}%` }}></div>
-          </div>
-        </div>
-        <div className="text-center md:text-right">
-           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Status</span>
-           <div className={`text-4xl font-black ${isGoalReached ? 'text-emerald-500' : 'text-indigo-500'}`}>
-             {goalPercent.toFixed(0)}%
-           </div>
-        </div>
-      </div>
-
-      {/* 4. Custos por KM */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custo por KM</span>
-            <span className="text-xl font-black text-slate-800">{formatCurrency(fuelMetrics.costPerKm)}</span>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custo por entrega</span>
-            <span className="text-xl font-black text-slate-800">{formatCurrency(fuelMetrics.costPerDelivery)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Divisão de Reservas */}
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center gap-6">
-        <div className="flex-1 w-full">
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Divisão de reservas</h3>
-          <p className="text-xs text-slate-400 mb-6 font-bold uppercase">Baseado em todo o período acumulado</p>
-          <div className="grid grid-cols-2 gap-4">
-             {pieData.map(item => (
-               <div key={item.name} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
-                 <div className="text-left">
-                    <span className="block text-[9px] font-black text-slate-400 uppercase tracking-tight">{item.name}</span>
-                    <span className="block text-sm font-black text-slate-800">{formatCurrency(item.value)}</span>
+            
+            <div className="grid grid-cols-2 gap-3">
+               {pieData.map(item => (
+                 <div key={item.name} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100/50 dark:border-slate-800 group hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all">
+                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
+                   <div className="text-left">
+                      <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tight">{item.name}</span>
+                      <span className="block text-sm font-black text-slate-800 dark:text-white font-mono-num">{formatCurrency(item.value)}</span>
+                   </div>
                  </div>
-               </div>
-             ))}
+               ))}
+            </div>
           </div>
-        </div>
-        <div className="w-full lg:w-64 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8} dataKey="value">
-                {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />)}
-              </Pie>
-              <Tooltip 
-                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                 itemStyle={{ fontWeight: '900', fontSize: '12px' }}
-                 formatter={(value: number) => formatCurrency(value)} 
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+          
+          <div className="w-full md:w-56 h-56 relative flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={pieData} 
+                  cx="50%" 
+                  cy="50%" 
+                  innerRadius={65} 
+                  outerRadius={85} 
+                  paddingAngle={8} 
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                </Pie>
+                <Tooltip 
+                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px', backgroundColor: '#1e293b', color: '#fff' }}
+                   itemStyle={{ fontWeight: '900', fontSize: '12px', color: '#fff' }}
+                   formatter={(value: number) => formatCurrency(value)} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Total</span>
+              <span className="text-lg font-black text-slate-800 dark:text-white font-mono-num">{formatCurrency(generalSum.totalGross).replace('R$', '')}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Card Saldo Líquido Mês (1 coluna) */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-emerald-600 dark:bg-emerald-700 p-8 rounded-[2.5rem] text-white shadow-lg shadow-emerald-100 dark:shadow-none flex flex-col justify-between relative overflow-hidden group"
+        >
+          <div className="relative z-10">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-md">
+              <Wallet size={24} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-70 block mb-1">Saldo Líquido Mês</span>
+            <div className="text-4xl font-black font-mono-num tracking-tighter mb-8">{formatCurrency(monthSum.totalNet)}</div>
+            
+            <button 
+              onClick={() => onNavigate('reports')}
+              className="w-full py-3 bg-white dark:bg-slate-100 text-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-white transition-colors"
+            >
+              Ver Relatórios <ChevronRight size={14} />
+            </button>
+          </div>
+          <div className="absolute -right-8 -top-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
+            <Wallet size={200} />
+          </div>
+        </motion.div>
+
       </div>
-    </div>
+    </motion.div>
   );
 };
 

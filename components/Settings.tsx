@@ -156,46 +156,46 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
       </div>
 
       {/* CARD: META */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-black text-slate-800">Meta diária</h3>
-          <span className="text-2xl font-black text-indigo-600">{formatCurrency(config.dailyGoal)}</span>
+          <h3 className="text-xl font-black text-slate-800 dark:text-white">Meta diária</h3>
+          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(config.dailyGoal)}</span>
         </div>
         <input 
           type="range" min="50" max="1000" step="10"
           value={config.dailyGoal}
           onChange={(e) => handleSliderChange('dailyGoal', e.target.value)}
-          className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+          className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:accent-indigo-400"
         />
       </div>
 
       {/* CARD: ALERTAS DE MANUTENÇÃO */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-black text-slate-800">Alertas de manutenção</h3>
-          <button onClick={addMaintenanceAlert} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white">Alertas de manutenção</h3>
+          <button onClick={addMaintenanceAlert} className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors">
             + Adicionar
           </button>
         </div>
         <div className="space-y-4">
           {(config.maintenanceAlerts || []).map(alert => (
-            <div key={alert.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col sm:flex-row gap-4 items-end">
+            <div key={alert.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1 w-full">
-                <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Descrição</label>
+                <label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Descrição</label>
                 <input 
                   type="text" 
                   value={alert.description} 
                   onChange={(e) => handleMaintenanceAlertChange(alert.id, 'description', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:border-indigo-500 outline-none"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-indigo-500 outline-none"
                 />
               </div>
               <div className="w-full sm:w-32">
-                <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Intervalo (KM)</label>
+                <label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Intervalo (KM)</label>
                 <input 
                   type="number" 
                   value={alert.kmInterval} 
                   onChange={(e) => handleMaintenanceAlertChange(alert.id, 'kmInterval', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:border-indigo-500 outline-none"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-indigo-500 outline-none"
                 />
               </div>
               <button onClick={() => removeMaintenanceAlert(alert.id)} className="p-2 text-rose-400 hover:text-rose-600 transition-colors">
@@ -238,8 +238,8 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
       </div>
 
       {/* CARD: RESERVAS */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-        <h3 className="text-xl font-black text-slate-800 mb-4">Taxas de reserva</h3>
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <h3 className="text-xl font-black text-slate-800 dark:text-white mb-4">Taxas de reserva</h3>
         <div className="space-y-6">
           {[
             { id: 'percFuel', label: 'Gasolina', color: 'red', val: config.percFuel },
@@ -247,11 +247,11 @@ const Settings: React.FC<SettingsProps> = ({ config, entries, timeEntries, onCha
             { id: 'percMaintenance', label: 'Manutenção', color: 'blue', val: config.percMaintenance }
           ].map(item => (
             <div key={item.id} className="space-y-2">
-              <div className="flex justify-between font-black text-[10px] uppercase text-slate-400">
+              <div className="flex justify-between font-black text-[10px] uppercase text-slate-400 dark:text-slate-500">
                 <span>{item.label}</span>
-                <span className={`text-sm text-${item.color}-600`}>{(item.val * 100).toFixed(1)}%</span>
+                <span className={`text-sm text-${item.color}-600 dark:text-${item.color}-400`}>{(item.val * 100).toFixed(1)}%</span>
               </div>
-              <input type="range" min="0" max="40" step="0.5" value={item.val * 100} onChange={(e) => handleSliderChange(item.id as any, e.target.value)} className={`w-full accent-${item.color}-500`} />
+              <input type="range" min="0" max="40" step="0.5" value={item.val * 100} onChange={(e) => handleSliderChange(item.id as any, e.target.value)} className={`w-full accent-${item.color}-500 dark:accent-${item.color}-400`} />
             </div>
           ))}
         </div>

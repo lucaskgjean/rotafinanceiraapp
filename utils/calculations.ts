@@ -24,7 +24,7 @@ export const calculateDailyEntry = (
   config: AppConfig,
   kmDriven?: number,
   fuelPrice?: number,
-  paymentMethod?: 'money' | 'pix' | 'debito'
+  paymentMethod?: 'money' | 'pix' | 'debito' | 'caderno'
 ): DailyEntry => {
   const fuel = gross * config.percFuel;
   const food = gross * config.percFood;
@@ -60,7 +60,8 @@ export const calculateManualExpense = (
   time: string,
   description: string,
   kmAtMaintenance?: number,
-  paymentMethod?: 'money' | 'pix' | 'debito'
+  paymentMethod?: 'money' | 'pix' | 'debito' | 'caderno',
+  liters?: number
 ): DailyEntry => {
   return {
     id: generateId(),
@@ -75,7 +76,8 @@ export const calculateManualExpense = (
     kmAtMaintenance,
     paymentMethod,
     isPaid: paymentMethod === 'money',
-    category
+    category,
+    liters: category === 'fuel' ? liters : undefined
   };
 };
 
@@ -100,6 +102,7 @@ export const getWeeklySummary = (entries: DailyEntry[]): WeeklySummary => {
   const spentFood = expenseEntries.reduce((acc, curr) => acc + curr.food, 0);
   const spentMaintenance = expenseEntries.reduce((acc, curr) => acc + curr.maintenance, 0);
   const totalKm = entries.reduce((acc, curr) => acc + (curr.kmDriven || 0), 0);
+  const totalLiters = expenseEntries.reduce((acc, curr) => acc + (curr.liters || 0), 0);
 
   // Excesso
   const excessFuel = Math.max(0, spentFuel - reservedFuel);
@@ -119,7 +122,8 @@ export const getWeeklySummary = (entries: DailyEntry[]): WeeklySummary => {
     totalSpentFood: spentFood,
     totalSpentMaintenance: spentMaintenance,
     totalFees: totalFees + totalExcess,
-    totalKm
+    totalKm,
+    totalLiters
   };
 };
 
@@ -188,12 +192,18 @@ export const formatCurrency = (value: number) => {
 export const calculateFuelMetrics = (entries: DailyEntry[]) => {
   const totalKm = entries.reduce((acc, curr) => acc + (curr.kmDriven || 0), 0);
   const incomeEntries = entries.filter(e => e.grossAmount > 0);
+  const expenseEntries = entries.filter(e => e.grossAmount === 0 && e.category === 'fuel');
   const totalFuelReserved = incomeEntries.reduce((acc, curr) => acc + curr.fuel, 0);
+  const totalFuelSpent = expenseEntries.reduce((acc, curr) => acc + curr.fuel, 0);
+  const totalLiters = expenseEntries.reduce((acc, curr) => acc + (curr.liters || 0), 0);
   const totalDeliveries = incomeEntries.length;
 
   return {
-    costPerKm: totalKm > 0 ? totalFuelReserved / totalKm : 0,
-    costPerDelivery: totalDeliveries > 0 ? totalFuelReserved / totalDeliveries : 0
+    costPerKm: totalKm > 0 ? totalFuelSpent / totalKm : 0,
+    costPerDelivery: totalDeliveries > 0 ? totalFuelSpent / totalDeliveries : 0,
+    kmPerLiter: totalLiters > 0 ? totalKm / totalLiters : 0,
+    avgPricePerLiter: totalLiters > 0 ? totalFuelSpent / totalLiters : 0,
+    totalLiters
   };
 };
 
