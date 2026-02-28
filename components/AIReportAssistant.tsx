@@ -69,7 +69,7 @@ const AIReportAssistant: React.FC<AIReportAssistantProps> = ({ reportData }) => 
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash", // Using flash for speed and cost
+        model: "gemini-3-flash-preview",
         contents: [
           { role: 'user', parts: [{ text: context + "\n\nPergunta do usuário: " + userMessage }] }
         ],
