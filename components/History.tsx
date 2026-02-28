@@ -236,24 +236,35 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit, on
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border-2 transition-all group ${entry.grossAmount > 0 ? 'border-indigo-50 dark:border-indigo-500/10 hover:border-indigo-100 dark:hover:border-indigo-500/20' : 'border-rose-50 dark:border-rose-500/10 hover:border-rose-100 dark:hover:border-rose-500/20'}`}
+                  className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border-2 transition-all group relative overflow-hidden ${entry.grossAmount > 0 ? 'border-indigo-50 dark:border-indigo-500/10 hover:border-indigo-100 dark:hover:border-indigo-500/20' : 'border-rose-50 dark:border-rose-500/10 hover:border-rose-100 dark:hover:border-rose-500/20'}`}
                 >
+                  {/* Barra de Status Lateral */}
+                  {entry.paymentMethod !== 'money' && entry.storeName !== 'Fechamento de KM' && (
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${entry.isPaid ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  )}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex gap-4 items-center">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${entry.grossAmount > 0 ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
                         {entry.grossAmount > 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-800 dark:text-white leading-tight text-lg">{entry.storeName.replace('[GASTO] ', '')}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-slate-800 dark:text-white leading-tight text-lg">{entry.storeName.replace('[GASTO] ', '')}</h4>
+                          {entry.paymentMethod !== 'money' && entry.storeName !== 'Fechamento de KM' && (
+                            <span className={`text-[8px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-widest border ${entry.isPaid ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'}`}>
+                              {entry.isPaid ? 'Pago' : 'Pendente'}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-tight flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-tight flex items-center gap-1">
                             <Calendar size={10} /> {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                           </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-tight flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-tight flex items-center gap-1">
                             <Clock size={10} /> {entry.time}
                           </span>
                           {entry.paymentMethod && (
-                            <span className="text-[10px] text-indigo-400 dark:text-indigo-500 font-black uppercase tracking-tight flex items-center gap-1">
+                            <span className="text-[10px] text-indigo-400 dark:text-indigo-500 font-semibold uppercase tracking-tight flex items-center gap-1">
                               <CreditCard size={10} /> {entry.paymentMethod}
                             </span>
                           )}
@@ -261,10 +272,10 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit, on
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-xl font-black font-mono-num ${entry.grossAmount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      <div className={`text-xl font-bold font-mono-num ${entry.grossAmount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {entry.grossAmount > 0 ? `+${formatCurrency(entry.grossAmount).replace('R$', '')}` : `-${formatCurrency(entry.fuel + entry.food + entry.maintenance).replace('R$', '')}`}
                       </div>
-                      <span className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                      <span className="text-[9px] font-semibold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {entry.grossAmount > 0 ? 'Lucro' : 'Gasto'}
                       </span>
                     </div>
@@ -273,16 +284,16 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit, on
                   {entry.grossAmount > 0 && (
                     <div className="grid grid-cols-3 gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 mb-6">
                       <div className="space-y-0.5">
-                        <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Comb.</span>
-                        <span className="text-xs font-black text-slate-600 dark:text-slate-300 font-mono-num">{formatCurrency(entry.fuel).replace('R$', '')}</span>
+                        <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Comb.</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 font-mono-num">{formatCurrency(entry.fuel).replace('R$', '')}</span>
                       </div>
                       <div className="space-y-0.5">
-                        <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Alim.</span>
-                        <span className="text-xs font-black text-slate-600 dark:text-slate-300 font-mono-num">{formatCurrency(entry.food).replace('R$', '')}</span>
+                        <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Alim.</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 font-mono-num">{formatCurrency(entry.food).replace('R$', '')}</span>
                       </div>
                       <div className="space-y-0.5">
-                        <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Líquido</span>
-                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono-num">{formatCurrency(entry.netAmount).replace('R$', '')}</span>
+                        <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Líquido</span>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono-num">{formatCurrency(entry.netAmount).replace('R$', '')}</span>
                       </div>
                     </div>
                   )}
@@ -291,10 +302,10 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit, on
                     {entry.paymentMethod !== 'money' && entry.storeName !== 'Fechamento de KM' && (
                       <button 
                         onClick={() => onUpdate({ ...entry, isPaid: !entry.isPaid })}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl transition-all active:scale-95 ${entry.isPaid ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl transition-all active:scale-95 border-2 ${entry.isPaid ? 'bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400' : 'bg-rose-50 border-rose-100 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400'}`}
                       >
                         {entry.isPaid ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                        <span className="text-[10px] font-black uppercase tracking-widest">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest">
                           {entry.isPaid ? 'Pago' : 'Pendente'}
                         </span>
                       </button>
@@ -304,14 +315,14 @@ const History: React.FC<HistoryProps> = ({ entries, config, onDelete, onEdit, on
                       className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-2xl transition-all active:scale-95"
                     >
                       <Edit3 size={14} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Editar</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-widest">Editar</span>
                     </button>
                     <button 
                       onClick={() => onDelete(entry.id)}
                       className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-2xl transition-all active:scale-95"
                     >
                       <Trash2 size={14} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Excluir</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-widest">Excluir</span>
                     </button>
                   </div>
                 </motion.div>

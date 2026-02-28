@@ -296,7 +296,7 @@ const App: React.FC = () => {
         </AnimatePresence>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 glass-nav md:hidden pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] dark:shadow-none">
+      <nav className="fixed bottom-0 left-0 right-0 glass-nav md:hidden pb-safe z-50 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.3)]">
         <div className="flex justify-around items-center h-20 px-2">
           {[
             { id: 'dashboard', label: 'Início', icon: <Home size={22} /> },
